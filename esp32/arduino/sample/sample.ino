@@ -2,19 +2,25 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <SimpleDHT.h>
+
+int pinDHT22 = 4;
+SimpleDHT22 dht22(pinDHT22);
+float temperature = 0;
+float humidity = 0;
 
 // Device Name: Maximum 30 bytes
 #define DEVICE_NAME "LINE Things Trial ESP32"
 
 // User service UUID: Change this to your generated service UUID
-#define USER_SERVICE_UUID "91E4E176-D0B9-464D-9FE4-52EE3E9F1552"
+#define USER_SERVICE_UUID "439e8c78-a88e-49d0-8250-8b3eaf80bff4"
 // User service characteristics
 #define WRITE_CHARACTERISTIC_UUID "E9062E71-9E62-4BC6-B0D3-35CDCD9B027B"
 #define NOTIFY_CHARACTERISTIC_UUID "62FBD229-6EDD-4D1A-B554-5C4E1BB29169"
 
 // PSDI Service UUID: Fixed value for Developer Trial
-#define PSDI_SERVICE_UUID "E625601E-9E55-4597-A598-76018A0D293D"
-#define PSDI_CHARACTERISTIC_UUID "26E2B12B-85F0-4F3F-9FDD-91D114270E6E"
+#define PSDI_SERVICE_UUID "e625601e-9e55-4597-a598-76018a0d293d"
+#define PSDI_CHARACTERISTIC_UUID "26e2b12b-85f0-4f3f-9fdd-91d114270e6e"
 
 #define BUTTON 0
 #define LED1 2
@@ -141,4 +147,25 @@ void startAdvertising(void) {
 
 void buttonAction() {
   btnAction++;
+}
+
+void get_temp() {
+  int err = SimpleDHTErrSuccess;
+  if ((err = dht22.read2(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess) {
+    Serial.print("Read DHT22 failed, err="); Serial.println(err); delay(2000);
+    return;
+  }
+  Serial.print("Sample OK: ");
+  Serial.print((float)temperature); Serial.print(" *C, ");
+  Serial.print((float)humidity); Serial.println(" RH%");
+
+  // DHT22 sampling rate is 0.5HZ.
+  delay(2500);
+}
+
+void send_temp() {
+  uint8_t val = (int)temperature;
+  notifyCharacteristic->setValue(&val, 1);
+  notifyCharacteristic->notify();
+  delay(20);
 }
